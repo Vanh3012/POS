@@ -3,9 +3,7 @@ package com.restaurant.service;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.restaurant.dto.request.LoginRequest;
 import com.restaurant.dto.response.LoginResponse;
@@ -23,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
 
     public List<LoginResponse> getAllUserActive() {
         return userRepository.findByActiveTrueOrderByNameAsc()

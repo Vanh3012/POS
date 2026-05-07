@@ -4,8 +4,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.databind.JsonMappingException.Reference;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -81,6 +83,28 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFound(NoResourceFoundException exception) {
+        ApiError error = new ApiError(
+                "ENDPOINT_NOT_FOUND",
+                "Endpoint not found");
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception) {
+        ApiError error = new ApiError(
+                "METHOD_NOT_ALLOWED",
+                "HTTP method is not supported for this endpoint");
+
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleException(Exception exception) {
         ApiError error = new ApiError(
@@ -108,6 +132,8 @@ public class GlobalExceptionHandler {
             case "END_TIME_INVALID" -> "End time must use HH:mm or HH:mm:ss";
             case "ACTIVE_REQUIRED" -> "Active status is required";
             case "INVALID_REQUEST_BODY" -> "Request body is invalid";
+            case "ENDPOINT_NOT_FOUND" -> "Endpoint not found";
+            case "METHOD_NOT_ALLOWED" -> "HTTP method is not supported for this endpoint";
             default -> "Invalid request";
         };
     }

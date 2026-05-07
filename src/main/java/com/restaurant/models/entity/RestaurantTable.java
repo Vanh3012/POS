@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +24,7 @@ import lombok.Setter;
 @Table(name = "tables")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RestaurantTable {
@@ -30,14 +32,20 @@ public class RestaurantTable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "table_number", nullable = false)
+    @Column(name = "table_number", nullable = false, unique = true)
     private String tableNumber;
 
+    @Builder.Default
     private Integer floor = 1;
 
     @Enumerated(EnumType.STRING)
     private TableStatus status;
 
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
     @OneToMany(mappedBy = "table")
+    @Builder.Default
     private List<Order> orders = new ArrayList<>();
 }
