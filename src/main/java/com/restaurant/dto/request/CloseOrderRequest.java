@@ -1,6 +1,9 @@
 package com.restaurant.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
+import java.math.BigDecimal;
+
+import com.restaurant.models.enums.PaymentMethod;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,10 +14,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableRequest {
-    @NotBlank(message = "Table number is required")
-    private String tableNumber;
+public class CloseOrderRequest {
+    @NotNull(message = "Payment method is required")
+    private PaymentMethod paymentMethod;
 
-    @NotNull(message = "Floor is required")
-    private Integer floor;
+    private BigDecimal received;
 }

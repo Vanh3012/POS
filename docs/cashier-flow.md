@@ -1,6 +1,6 @@
 # Cashier Flow
 
-## Muc tieu UI
+## Muc Tieu UI
 
 Man hinh cashier theo Figma gom:
 
@@ -15,9 +15,182 @@ Man hinh cashier theo Figma gom:
 - Payment method: credit card, cash, QRIS.
 - Nut `Place Order` va `Close Order`.
 
-## Da co trong backend
+Trang cashier la mot man hinh duy nhat tren frontend, nhung co the goi nhieu API khac nhau. Endpoint `GET /cashier` duoc dung nhu API tong hop de load du lieu ban dau cho page. Cac hanh dong nghiep vu nhu place order va close order nam duoi `/cashier/orders`.
 
-### Cashier API doc du lieu
+## API Da Co
+
+### Load Cashier View
+
+```http
+GET /cashier
+```
+
+Response gom:
+
+```json
+{
+  "categories": [],
+  "menuItems": [],
+  "tables": [],
+  "orders": []
+}
+```
+
+Trong do:
+
+- `categories`: danh sach category.
+- `menuItems`: danh sach mon an, co the filter bang `keyword`.
+- `tables`: danh sach ban active.
+- `orders`: danh sach order dang mo, hien lay status `BEING_COOKED`.
+
+Co the search menu ngay luc load view:
+
+```http
+GET /cashier?keyword=burger
+```
+
+### Category Va Menu
+
+```http
+GET /cashier/categories
+GET /cashier/menu-items
+GET /cashier/menu-items?categoryId=1
+GET /cashier/menu-items?keyword=burger
+GET /cashier/menu-items?categoryId=1&keyword=burger
+GET /cashier/menu-items/{menuItemId}
+```
+
+### Place Order
+
+```http
+POST /cashier/orders
+```
+
+Body:
+
+```json
+{
+  "tableId": 1,
+  "customerName": "Avita Desi",
+  "orderType": "DINE_IN",
+  "note": "Extra cutlery",
+  "paymentMethod": "QRIS",
+  "items": [
+    {
+      "menuItemId": 1,
+      "quantity": 1,
+      "note": ""
+    },
+    {
+      "menuItemId": 2,
+      "quantity": 2,
+      "note": "No onion"
+    }
+  ]
+}
+```
+
+Rule backend:
+
+- `items` bat buoc khong rong.
+- Moi item phai co `menuItemId` ton tai va `quantity >= 1`.
+- `orderType = DINE_IN` bat buoc co `tableId`.
+- Ban dine-in phai ton tai, active, va chua `USED`.
+- `orderType = TAKE_AWAY` khong can table; neu gui `tableId` thi backend bo qua.
+- Tax hien tinh 11%.
+- Tao `Order` status `BEING_COOKED`.
+- Tao `Payment` status `PENDING`.
+- Neu dine-in thi set table status `USED`.
+
+Response la `OrderDTO`.
+
+### Close Order
+
+```http
+PATCH /cashier/orders/{orderId}/close
+```
+
+Cash:
+
+```json
+{
+  "paymentMethod": "CASH",
+  "received": 20.00
+}
+```
+
+Credit card hoac QRIS:
+
+```json
+{
+  "paymentMethod": "QRIS"
+}
+```
+
+Rule backend:
+
+- Order phai ton tai.
+- Order da `DELIVERED` thi khong close lai.
+- Neu cash, `received` bat buoc co va phai >= `totalPrice`.
+- Neu credit card hoac QRIS, backend tu set `received = totalPrice`.
+- Set payment status `COMPLETED`.
+- Set `paidAt` va `paidBy`.
+- Set order status `DELIVERED`.
+- Neu order co table thi set table status `AVAILABLE`.
+
+Response la `OrderDTO`.
+
+## DTO Chinh
+
+### CashierViewDTO
+
+```json
+{
+  "categories": [],
+  "menuItems": [],
+  "tables": [],
+  "orders": []
+}
+```
+
+### OrderDTO
+
+```json
+{
+  "id": 1,
+  "tableId": 1,
+  "tableNumber": "Table 20",
+  "userId": 3,
+  "customerName": "Avita Desi",
+  "subTotal": 8.99,
+  "taxRate": 11.00,
+  "tax": 0.99,
+  "totalPrice": 9.98,
+  "status": "BEING_COOKED",
+  "orderType": "DINE_IN",
+  "note": "Extra cutlery",
+  "paymentMethod": "QRIS",
+  "paymentStatus": "PENDING",
+  "received": null,
+  "changeAmount": null,
+  "createdAt": "2026-05-08T14:00:00",
+  "items": [
+    {
+      "id": 1,
+      "menuItemId": 1,
+      "menuItemName": "Beef Burger",
+      "quantity": 1,
+      "unitPrice": 2.50,
+      "lineTotal": 2.50,
+      "note": ""
+    }
+  ]
+}
+```
+
+## Backend Da Implement
+
+### Controller
 
 File: `src/main/java/com/restaurant/controller/CashierController.java`
 
@@ -25,91 +198,144 @@ Da co:
 
 - `GET /cashier`
 - `GET /cashier/categories`
-- `GET /cashier/menu-items?categoryId=&keyword=`
+- `GET /cashier/menu-items`
 - `GET /cashier/menu-items/{menuItemId}`
+- `POST /cashier/orders`
+- `PATCH /cashier/orders/{orderId}/close`
 
-### Cashier service
+### Service
 
 File: `src/main/java/com/restaurant/service/CashierService.java`
 
 Da co:
 
+- Load cashier view.
 - Load categories.
 - Load menu items.
 - Search menu item theo keyword.
 - Filter menu item theo category.
 - Load tables thong qua `TableService`.
+- Load open orders status `BEING_COOKED`.
+- Place order.
+- Close order/payment.
+- Mapper `Order -> OrderDTO`.
+- Mapper `OrderItem -> OrderItemDTO`.
+- Tinh `subTotal`, `tax`, `totalPrice`.
+- Dong bo table status khi place/close order.
 
-Con trong `getCashierView()`:
-
-```java
-CashierViewDTO {
-    categories,
-    menuItems,
-    tables,
-    orders
-}
-```
-
-### Table service
-
-File: `src/main/java/com/restaurant/service/TableService.java`
+### Repository
 
 Da co:
 
-- Lay danh sach table active.
-- Admin CRUD table.
-- Update table status.
-- Toggle table status.
+- `OrderRepository`
+- `PaymentRepository`
+- `CategoryRepository`
+- `MenuItemRepository`
+- `TableRepository`
+- `UserRepository`
 
-### Entity nen tang
+### Request DTO
 
-Da co entity:
+Da co:
 
-- `Order`
-- `OrderItem`
-- `Payment`
-- `RestaurantTable`
-- `MenuItem`
-- `Category`
-- `User`
+- `CreateOrderRequest`
+- `CreateOrderItemRequest`
+- `CloseOrderRequest`
 
-`Order` da co cac field can cho cashier:
+### Response DTO
 
-- `table`
-- `user`
-- `customerName`
-- `subTotal`
-- `taxRate`
-- `tax`
-- `totalPrice`
-- `status`
-- `orderType`
-- `note`
-- `createdAt`
-- `orderItems`
-- `payment`
+Da co:
 
-`OrderItem` da co:
+- `CashierViewDTO`
+- `OrderDTO`
+- `OrderItemDTO`
+- `CategoryDTO`
+- `MenuItemDTO`
+- `TableDTO`
 
-- `order`
-- `menuItem`
-- `quantity`
-- `unitPrice`
-- `note`
+### Security
 
-`Payment` da co:
+File: `src/main/java/com/restaurant/config/SecurityConfig.java`
 
-- `order`
-- `paymentMethod`
-- `amount`
-- `received`
-- `changeAmount`
-- `status`
-- `paidAt`
-- `paidBy`
+Da mo authenticated access cho:
 
-### Enum da co
+- `GET /cashier/**`
+- `POST /cashier/**`
+- `PATCH /cashier/**`
+
+Admin-only table management van nam o:
+
+- `POST /tables`
+- `PUT /tables/{tableId}`
+- `DELETE /tables/{tableId}`
+- `PATCH /tables/{tableId}/active`
+
+Cashier/waiter duoc doi status ban qua:
+
+- `PATCH /tables/{tableId}/status`
+- `PATCH /tables/{tableId}/toggle-status`
+
+## Flow Frontend De Goi API
+
+### 1. Load Man Cashier
+
+```http
+GET /cashier
+```
+
+Render:
+
+- Category tabs tu `categories`.
+- Menu grid tu `menuItems`.
+- Table dropdown tu `tables`.
+- Order list tu `orders`.
+
+### 2. Search/Filter Menu
+
+```http
+GET /cashier/menu-items?keyword=burger
+GET /cashier/menu-items?categoryId=1&keyword=burger
+```
+
+### 3. Gio Hang Draft
+
+Cart ben phai nen giu o frontend truoc khi bam `Place Order`.
+
+Khi click menu item:
+
+- Neu item chua co trong cart: them item voi `quantity = 1`.
+- Neu item da co trong cart: tang quantity len 1.
+- Nut minus giam quantity.
+- Quantity ve 0 thi xoa item khoi cart.
+
+### 4. Place Order
+
+Frontend gui cart draft len:
+
+```http
+POST /cashier/orders
+```
+
+Sau khi thanh cong:
+
+- Clear cart draft.
+- Goi lai `GET /cashier` de refresh table status va order list.
+
+### 5. Close Order
+
+Khi user chon mot order dang mo va bam `Close Order`:
+
+```http
+PATCH /cashier/orders/{orderId}/close
+```
+
+Sau khi thanh cong:
+
+- Goi lai `GET /cashier`.
+- Order da close bien mat khoi `orders` vi khong con status `BEING_COOKED`.
+- Ban dine-in quay ve `AVAILABLE`.
+
+## Trang Thai Va Enum
 
 `OrderType`:
 
@@ -118,8 +344,8 @@ Da co entity:
 
 `OrderStatus`:
 
-- `DELIVERED`
 - `BEING_COOKED`
+- `DELIVERED`
 
 `PaymentMethod`:
 
@@ -133,360 +359,34 @@ Da co entity:
 - `COMPLETED`
 - `REFUNDED`
 
-## Con thieu
+`TableStatus`:
 
-- `CashierService.getOpenOrders()` hien dang return list rong.
-- Chua co `OrderRepository`.
-- Chua co `PaymentRepository`.
-- Chua co request DTO cho tao order.
-- Chua co request DTO cho close order/payment.
-- Chua co API tao order.
-- Chua co API close order.
-- Chua co mapper `Order -> OrderDTO`.
-- Chua co mapper `OrderItem -> OrderItemDTO`.
-- Chua co logic tinh `subTotal`, `tax`, `totalPrice`.
-- Chua co logic doi table status khi tao/close order.
-- `SecurityConfig` hien moi cho `GET /cashier/**`, chua cho `POST/PATCH /cashier/**`.
+- `AVAILABLE`
+- `USED`
 
-## Flow frontend nen lam
+## Nhung Phan Chua Lam
 
-### 1. Load man cashier
+- Sua item tren order da tao.
+- Xoa item tren order da tao.
+- Cancel order.
+- Refund payment.
+- Lich su order da close.
+- Filter orders theo table/status/date.
+- Tach tax rate ra config thay vi hard-code 11%.
+- Mo rong `OrderStatus` neu can workflow bep ro hon, vi hien chi co `BEING_COOKED` va `DELIVERED`.
 
-Frontend goi:
+## Test
 
-```http
-GET /cashier
+Da chay:
+
+```powershell
+.\mvnw.cmd test-compile
+.\mvnw.cmd test
 ```
 
-Backend tra:
+Ket qua:
 
-- `categories`
-- `menuItems`
-- `tables`
-- `orders`
+- Compile pass.
+- Test pass: 4 tests, 0 failures.
 
-Dung de render:
-
-- Category tabs.
-- Menu grid.
-- Table dropdown.
-- Order list.
-
-### 2. Search menu
-
-Frontend goi:
-
-```http
-GET /cashier/menu-items?keyword=burger
-```
-
-Neu chon category:
-
-```http
-GET /cashier/menu-items?categoryId=1&keyword=burger
-```
-
-### 3. Chon table
-
-UI dropdown `Select Table`.
-
-Rule:
-
-- Bat buoc neu `orderType = DINE_IN`.
-- Khong bat buoc neu `orderType = TAKE_AWAY`.
-
-### 4. Chon order type
-
-UI dropdown `Order Type`.
-
-Gia tri gui backend:
-
-- `DINE_IN`
-- `TAKE_AWAY`
-
-### 5. Them mon vao cart
-
-Khi click menu item:
-
-- Neu item chua co trong cart: them item voi `quantity = 1`.
-- Neu item da co trong cart: tang quantity len 1.
-- Nut minus giam quantity.
-- Quantity ve 0 thi xoa item khoi cart.
-
-Khuyen nghi: cart ben phai nen giu o frontend truoc, chua tao order trong database ngay.
-
-### 6. Edit customer name
-
-Nut pencil o header ben phai mo modal.
-
-Frontend luu vao draft:
-
-```json
-{
-  "customerName": "Avita Desi"
-}
-```
-
-### 7. Edit customer notes
-
-Nut note/pencil mo modal.
-
-Frontend luu vao draft:
-
-```json
-{
-  "note": "Customer asks for extra cutlery for three people."
-}
-```
-
-### 8. Chon payment method
-
-Frontend luu payment method trong draft:
-
-- `CASH`
-- `CREDIT_CARD`
-- `QRIS`
-
-### 9. Place Order
-
-Frontend goi endpoint de tao order that.
-
-De xuat:
-
-```http
-POST /cashier/orders
-```
-
-Body:
-
-```json
-{
-  "tableId": 6,
-  "customerName": "Avita Desi",
-  "orderType": "DINE_IN",
-  "note": "Customer asks for extra cutlery for three people.",
-  "paymentMethod": "QRIS",
-  "items": [
-    {
-      "menuItemId": 1,
-      "quantity": 1,
-      "note": ""
-    },
-    {
-      "menuItemId": 2,
-      "quantity": 2,
-      "note": ""
-    }
-  ]
-}
-```
-
-Backend xu ly:
-
-- Validate cart khong rong.
-- Validate menu item ton tai.
-- Neu `DINE_IN`, validate table ton tai va active.
-- Tinh tien.
-- Tao `Order`.
-- Tao cac `OrderItem`.
-- Tao `Payment` status `PENDING`.
-- Set order status `BEING_COOKED`.
-- Neu `DINE_IN`, set table status `USED`.
-- Tra ve `OrderDTO`.
-
-### 10. Close Order
-
-Khi bam `Close Order`, backend hoan tat payment va order.
-
-De xuat:
-
-```http
-PATCH /cashier/orders/{orderId}/close
-```
-
-Body:
-
-```json
-{
-  "paymentMethod": "CASH",
-  "received": 20.00
-}
-```
-
-Backend xu ly:
-
-- Lay order dang mo.
-- Cap nhat payment method.
-- Set amount = order total.
-- Neu cash: tinh change = received - amount.
-- Set payment status `COMPLETED`.
-- Set `paidAt`.
-- Set order status `DELIVERED`.
-- Neu order dine-in co table: set table status `AVAILABLE`.
-- Tra ve `OrderDTO`.
-
-## Flow backend can code tiep
-
-### Buoc 1. Tao repository
-
-Can them:
-
-- `src/main/java/com/restaurant/repository/OrderRepository.java`
-- `src/main/java/com/restaurant/repository/PaymentRepository.java`
-
-`OrderRepository` nen co query lay order dang mo:
-
-```java
-List<Order> findByStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
-```
-
-Hoac don gian:
-
-```java
-List<Order> findAllByOrderByCreatedAtDesc();
-```
-
-Sau do filter status trong service.
-
-### Buoc 2. Tao request DTO
-
-Can them:
-
-- `CreateOrderRequest`
-- `CreateOrderItemRequest`
-- `CloseOrderRequest`
-
-De xuat field:
-
-`CreateOrderRequest`:
-
-- `Long tableId`
-- `String customerName`
-- `OrderType orderType`
-- `String note`
-- `PaymentMethod paymentMethod`
-- `List<CreateOrderItemRequest> items`
-
-`CreateOrderItemRequest`:
-
-- `Long menuItemId`
-- `Integer quantity`
-- `String note`
-
-`CloseOrderRequest`:
-
-- `PaymentMethod paymentMethod`
-- `BigDecimal received`
-
-### Buoc 3. Implement mapper DTO
-
-Trong `CashierService`, them:
-
-- `toOrderDTO(Order order)`
-- `toOrderItemDTO(OrderItem item)`
-
-`lineTotal = unitPrice * quantity`.
-
-### Buoc 4. Implement getOpenOrders
-
-Thay:
-
-```java
-public List<OrderDTO> getOpenOrders() {
-    return List.of();
-}
-```
-
-Bang logic lay order status `BEING_COOKED`.
-
-### Buoc 5. Implement createOrder
-
-Trong `CashierService`, them:
-
-```java
-public OrderDTO createOrder(CreateOrderRequest request)
-```
-
-Logic:
-
-- Validate request.
-- Build order.
-- Build order items.
-- Calculate totals.
-- Build payment pending.
-- Save order.
-- Update table status neu can.
-- Return DTO.
-
-Tax theo UI dang la 11%, co the hard-code tam:
-
-```java
-private static final BigDecimal TAX_RATE = BigDecimal.valueOf(11);
-private static final BigDecimal TAX_MULTIPLIER = BigDecimal.valueOf(0.11);
-```
-
-### Buoc 6. Implement closeOrder
-
-Trong `CashierService`, them:
-
-```java
-public OrderDTO closeOrder(Long orderId, CloseOrderRequest request)
-```
-
-Logic:
-
-- Tim order.
-- Validate order chua close.
-- Cap nhat payment.
-- Cap nhat status order.
-- Cap nhat table status.
-- Return DTO.
-
-### Buoc 7. Them endpoint vao CashierController
-
-Them:
-
-```java
-@PostMapping("/orders")
-public OrderDTO createOrder(@Valid @RequestBody CreateOrderRequest request) {
-    return cashierService.createOrder(request);
-}
-
-@PatchMapping("/orders/{orderId}/close")
-public OrderDTO closeOrder(
-        @PathVariable Long orderId,
-        @Valid @RequestBody CloseOrderRequest request) {
-    return cashierService.closeOrder(orderId, request);
-}
-```
-
-### Buoc 8. Update SecurityConfig
-
-File: `src/main/java/com/restaurant/config/SecurityConfig.java`
-
-Hien co:
-
-```java
-.requestMatchers(HttpMethod.GET, "/cashier/**").authenticated()
-```
-
-Can them:
-
-```java
-.requestMatchers(HttpMethod.POST, "/cashier/**").authenticated()
-.requestMatchers(HttpMethod.PATCH, "/cashier/**").authenticated()
-```
-
-## Ghi chu implementation
-
-- Nen de cart la draft frontend cho toi khi bam `Place Order`.
-- Backend chi luu order that khi `POST /cashier/orders`.
-- Sau khi place order thanh cong, frontend clear cart va reload `GET /cashier`.
-- `Close Order` nen dung cho order da tao, khong dung cho draft cart.
-- Neu can status ro hon, nen mo rong `OrderStatus` ve sau:
-  - `PENDING`
-  - `BEING_COOKED`
-  - `DELIVERED`
-  - `COMPLETED`
-  - `CANCELLED`
-
+Ghi chu: project dang dung Spring Boot `4.0.5`, nen da nang `springdoc-openapi-starter-webmvc-ui` len `3.0.3` de `/api-docs` hoat dong voi Boot 4.

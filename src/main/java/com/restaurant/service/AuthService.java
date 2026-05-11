@@ -1,11 +1,16 @@
 package com.restaurant.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.restaurant.dto.request.ForgotPasswordRequest;
 import com.restaurant.dto.request.LoginRequest;
+import com.restaurant.dto.request.ResetPasswordRequest;
+import com.restaurant.dto.request.VerifyOtpRequest;
 import com.restaurant.dto.response.LoginResponse;
 import com.restaurant.dto.response.UserDTO;
 import com.restaurant.exception.ApiException;
@@ -21,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     public List<LoginResponse> getAllUserActive() {
         return userRepository.findByActiveTrueOrderByNameAsc()
@@ -39,6 +45,45 @@ public class AuthService {
         }
 
         return toUserDTO(user);
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "Không tìm thấy User với email này"));
+
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        user.setOtp(otp);
+        user.setOtpExpiryTime(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
+
+        emailService.sendOtpEmail(user.getEmail(), otp);
+    }
+
+    public void verifyOtp(VerifyOtpRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "Không tìm thấy User với email này"));
+
+        if (user.getOtp() == null || !user.getOtp().equals(request.getOtp())) {
+            throw new ApiException("INVALID_OTP", HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ");
+        }
+
+        if (user.getOtpExpiryTime() == null || user.getOtpExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new ApiException("EXPIRED_OTP", HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn");
+        }
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        verifyOtp(new VerifyOtpRequest(request.getEmail(), request.getOtp()));
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "Không tìm thấy User với email này"));
+
+        user.setPassword(request.getNewPassword());
+        user.setOtp(null);
+        user.setOtpExpiryTime(null);
+        userRepository.save(user);
     }
 
     private LoginResponse toLoginResponse(User user) {

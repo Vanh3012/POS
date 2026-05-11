@@ -39,7 +39,8 @@ public class RestaurantTable {
     private Integer floor = 1;
 
     @Enumerated(EnumType.STRING)
-    private TableStatus status;
+    @Builder.Default
+    private TableStatus status = TableStatus.AVAILABLE;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

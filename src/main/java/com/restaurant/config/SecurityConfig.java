@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/tables/{tableId}/status").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/tables/{tableId}/toggle-status").authenticated()
                         .requestMatchers(HttpMethod.GET, "/cashier/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/cashier/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/cashier/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

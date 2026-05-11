@@ -3,16 +3,23 @@ package com.restaurant.controller;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
+import com.restaurant.dto.request.CreateOrderRequest;
 import com.restaurant.dto.response.CashierViewDTO;
 import com.restaurant.dto.response.CategoryDTO;
 import com.restaurant.dto.response.MenuItemDTO;
+import com.restaurant.dto.response.OrderDTO;
 import com.restaurant.service.CashierService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -41,5 +48,15 @@ public class CashierController {
     @GetMapping("/menu-items/{menuItemId}")
     public MenuItemDTO getMenuItem(@PathVariable Long menuItemId) {
         return cashierService.getMenuItem(menuItemId);
+    }
+
+    @PostMapping("/orders")
+    public OrderDTO createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        return cashierService.createOrder(request);
+    }
+
+    @PatchMapping("/orders/{orderId}/close")
+    public OrderDTO closeOrder(@PathVariable Long orderId) {
+        return cashierService.closeOrder(orderId);
     }
 }

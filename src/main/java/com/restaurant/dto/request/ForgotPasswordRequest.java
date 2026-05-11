@@ -1,7 +1,7 @@
 package com.restaurant.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,10 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableRequest {
-    @NotBlank(message = "Table number is required")
-    private String tableNumber;
-
-    @NotNull(message = "Floor is required")
-    private Integer floor;
+public class ForgotPasswordRequest {
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    private String email;
 }

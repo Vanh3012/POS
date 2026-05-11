@@ -26,6 +26,10 @@ public class OrderDTO {
     private String status;
     private String orderType;
     private String note;
+    private String paymentMethod;
+    private String paymentStatus;
+    private BigDecimal received;
+    private BigDecimal changeAmount;
     private LocalDateTime createdAt;
     private List<OrderItemDTO> items;
 }

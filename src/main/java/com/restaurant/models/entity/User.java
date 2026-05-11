@@ -63,6 +63,11 @@ public class User {
     @Builder.Default
     private Boolean active = true;
 
+    private String otp;
+
+    @Column(name = "otp_expiry_time")
+    private LocalDateTime otpExpiryTime;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

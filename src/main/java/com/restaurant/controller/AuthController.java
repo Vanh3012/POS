@@ -6,7 +6,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.restaurant.dto.response.UserDTO;
+import com.restaurant.dto.request.ForgotPasswordRequest;
 import com.restaurant.dto.request.LoginRequest;
+import com.restaurant.dto.request.ResetPasswordRequest;
+import com.restaurant.dto.request.VerifyOtpRequest;
 import com.restaurant.dto.response.LoginResponse;
 import com.restaurant.service.AuthService;
 import jakarta.validation.Valid;
@@ -28,5 +31,20 @@ public class AuthController {
     @PostMapping("/login")
     public UserDTO Login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/forgot-password")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+    }
+
+    @PostMapping("/verify-otp")
+    public void verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        authService.verifyOtp(request);
+    }
+
+    @PostMapping("/reset-password")
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
     }
 }

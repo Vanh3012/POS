@@ -1,0 +1,82 @@
+{
+	"info": {
+		"_postman_id": "b303d351-cc72-4d5d-9b5e-4f51e5e6e22e",
+		"name": "POS Restaurant",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Cashier",
+			"item": [
+				{
+					"name": "Create Order (DINE_IN)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tableId\": 1,\n    \"customerName\": \"Nguyen Van A\",\n    \"orderType\": \"DINE_IN\",\n    \"note\": \"Bàn khách VIP\",\n    \"paymentMethod\": \"CASH\",\n    \"items\": [\n        {\n            \"menuItemId\": 1,\n            \"quantity\": 2,\n            \"note\": \"Ít đá\"\n        },\n        {\n            \"menuItemId\": 2,\n            \"quantity\": 1,\n            \"note\": \"\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/cashier/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"cashier",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order (TAKE_AWAY)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customerName\": \"Trần Thị B\",\n    \"orderType\": \"TAKE_AWAY\",\n    \"note\": \"Mang đi, đóng gói cẩn thận\",\n    \"paymentMethod\": \"QRIS\",\n    \"items\": [\n        {\n            \"menuItemId\": 3,\n            \"quantity\": 1,\n            \"note\": \"Nhiều tương ớt\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/cashier/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"cashier",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
