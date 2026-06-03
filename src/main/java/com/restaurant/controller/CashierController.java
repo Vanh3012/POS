@@ -19,6 +19,7 @@ import com.restaurant.dto.response.MenuItemDTO;
 import com.restaurant.dto.response.OrderDTO;
 import com.restaurant.service.CashierService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -50,13 +51,26 @@ public class CashierController {
         return cashierService.getMenuItem(menuItemId);
     }
 
+    @GetMapping("/orders")
+    public List<OrderDTO> getOrders(){
+        return cashierService.getOrders();
+    }
+    
     @PostMapping("/orders")
-    public OrderDTO createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        return cashierService.createOrder(request);
+    public OrderDTO createOrder(@Valid @RequestBody CreateOrderRequest request, HttpServletRequest httpRequest) {
+        return cashierService.createOrder(request, clientIp(httpRequest));
     }
 
     @PatchMapping("/orders/{orderId}/close")
     public OrderDTO closeOrder(@PathVariable Long orderId) {
         return cashierService.closeOrder(orderId);
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

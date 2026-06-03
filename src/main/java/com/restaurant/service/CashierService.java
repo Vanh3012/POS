@@ -11,7 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.restaurant.dto.request.CloseOrderRequest;
 import com.restaurant.dto.request.CreateOrderItemRequest;
 import com.restaurant.dto.request.CreateOrderRequest;
 import com.restaurant.dto.response.CashierViewDTO;
@@ -55,6 +54,7 @@ public class CashierService {
     private final TableRepository tableRepo;
     private final UserRepository userRepo;
     private final TableService tableService;
+    private final VnpayService vnpayService;
 
     // trang view
     // -----------------------------------------------------------------------------------------
@@ -76,10 +76,17 @@ public class CashierService {
                 .toList();
     }
 
+    @Transactional
+    public List<OrderDTO> getOrders(){
+        return orderRepo.findTop10ByOrderByCreatedAtDesc()
+                        .stream()
+                        .map(this::toOrderDTO)
+                        .toList();
+    }
     // tạo order
     // -----------------------------------------------------------------------------------------
     @Transactional
-    public OrderDTO createOrder(CreateOrderRequest request) {
+    public OrderDTO createOrder(CreateOrderRequest request, String clientIp) {
         User user = getCurrentUser();
         RestaurantTable table = resolveTableForOrder(request);
 
@@ -120,14 +127,24 @@ public class CashierService {
         payment.setOrder(order);
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setAmount(amount);
-        payment.setReceived(received);
-        payment.setChangeAmount(money(received.subtract(amount)));
-        payment.setStatus(PaymentStatus.COMPLETED);
-        payment.setPaidAt(LocalDateTime.now());
+        payment.setReceived(request.getPaymentMethod() == PaymentMethod.QRIS ? BigDecimal.ZERO : received);
+        payment.setChangeAmount(request.getPaymentMethod() == PaymentMethod.QRIS
+                ? BigDecimal.ZERO
+                : money(received.subtract(amount)));
+        payment.setStatus(request.getPaymentMethod() == PaymentMethod.QRIS
+                ? PaymentStatus.PENDING
+                : PaymentStatus.COMPLETED);
+        payment.setPaidAt(request.getPaymentMethod() == PaymentMethod.QRIS ? null : LocalDateTime.now());
         payment.setPaidBy(user);
+        if (request.getPaymentMethod() == PaymentMethod.QRIS) {
+            payment.setProvider("VNPAY");
+        }
         order.setPayment(payment);
 
         Order savedOrder = orderRepo.save(order);
+        if (request.getPaymentMethod() == PaymentMethod.QRIS) {
+            vnpayService.createPaymentUrl(savedOrder, savedOrder.getPayment(), clientIp);
+        }
         paymentRepo.save(payment);
 
         if (table != null) {
@@ -240,6 +257,14 @@ public class CashierService {
                 .paymentStatus(order.getPayment() != null && order.getPayment().getStatus() != null
                         ? order.getPayment().getStatus().name()
                         : null)
+                .paymentId(order.getPayment() != null ? order.getPayment().getId() : null)
+                .paymentProvider(order.getPayment() != null ? order.getPayment().getProvider() : null)
+                .transactionRef(order.getPayment() != null ? order.getPayment().getTransactionRef() : null)
+                .providerTransactionNo(order.getPayment() != null ? order.getPayment().getProviderTransactionNo() : null)
+                .providerResponseCode(order.getPayment() != null ? order.getPayment().getProviderResponseCode() : null)
+                .bankCode(order.getPayment() != null ? order.getPayment().getBankCode() : null)
+                .paymentUrl(order.getPayment() != null ? order.getPayment().getPayUrl() : null)
+                .qrContent(order.getPayment() != null ? order.getPayment().getPayUrl() : null)
                 .received(order.getPayment() != null ? order.getPayment().getReceived() : null)
                 .changeAmount(order.getPayment() != null ? order.getPayment().getChangeAmount() : null)
                 .createdAt(order.getCreatedAt())

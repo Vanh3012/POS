@@ -51,6 +51,27 @@ public class Payment {
     @Column(name = "change_amount", precision = 10, scale = 2)
     private BigDecimal changeAmount;
 
+    @Column(name = "provider")
+    private String provider;
+
+    @Column(name = "transaction_ref", unique = true)
+    private String transactionRef;
+
+    @Column(name = "provider_transaction_no")
+    private String providerTransactionNo;
+
+    @Column(name = "provider_response_code")
+    private String providerResponseCode;
+
+    @Column(name = "bank_code")
+    private String bankCode;
+
+    @Column(name = "pay_url", length = 2048)
+    private String payUrl;
+
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
+
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 

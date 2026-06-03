@@ -13,31 +13,21 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderDTO {
-    private Long id;
-    private Long tableId;
-    private String tableNumber;
-    private Long userId;
+public class OrderPrintDTO {
+    private Long orderId;
+    private Long paymentId;
+    private String orderCode;
     private String customerName;
-    private BigDecimal subTotal;
-    private BigDecimal taxRate;
-    private BigDecimal tax;
-    private BigDecimal totalPrice;
-    private String status;
+    private String tableNumber;
     private String orderType;
-    private String note;
     private String paymentMethod;
     private String paymentStatus;
-    private Long paymentId;
-    private String paymentProvider;
     private String transactionRef;
-    private String providerTransactionNo;
-    private String providerResponseCode;
-    private String bankCode;
     private String paymentUrl;
     private String qrContent;
-    private BigDecimal received;
-    private BigDecimal changeAmount;
     private LocalDateTime createdAt;
+    private BigDecimal subTotal;
+    private BigDecimal tax;
+    private BigDecimal totalPrice;
     private List<OrderItemDTO> items;
 }

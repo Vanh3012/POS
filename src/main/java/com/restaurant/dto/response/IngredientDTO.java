@@ -11,12 +11,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderItemDTO {
+public class IngredientDTO {
     private Long id;
-    private Long menuItemId;
-    private String menuItemName;
-    private Integer quantity;
-    private BigDecimal unitPrice;
-    private BigDecimal lineTotal;
-    private String note;
-} 
+    private String name;
+    private String imageUrl;
+    private String unit;
+    private BigDecimal stockQuantity;
+    private BigDecimal minQuantity;
+    private Boolean lowStock;
+}

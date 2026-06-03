@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -53,7 +52,4 @@ public class MenuItem {
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<MenuItemIngredient> menuItemIngredients = new ArrayList<>();
 }

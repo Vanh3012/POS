@@ -1,0 +1,595 @@
+{
+  "info": {
+    "_postman_id": "7d7a4586-8c21-4a34-b62c-6fcfffb05641",
+    "name": "POS Restaurant - History Report VNPAY QR",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": "PASTE_JWT_TOKEN_HERE"
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    },
+    {
+      "key": "paymentUrl",
+      "value": ""
+    },
+    {
+      "key": "transactionRef",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "VNPAY QR Flow",
+      "item": [
+        {
+          "name": "Create Order - VNPAY QR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "if (data.id) pm.collectionVariables.set('orderId', data.id);",
+                  "if (data.paymentUrl) pm.collectionVariables.set('paymentUrl', data.paymentUrl);",
+                  "if (data.transactionRef) pm.collectionVariables.set('transactionRef', data.transactionRef);",
+                  "pm.test('Create QR order success', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "  pm.expect(data.paymentStatus).to.eql('PENDING');",
+                  "  pm.expect(data.paymentUrl).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"VNPAY Test Customer\",\n  \"orderType\": \"TAKE_AWAY\",\n  \"note\": \"Test VNPAY QR payment\",\n  \"paymentMethod\": \"QRIS\",\n  \"items\": [\n    {\n      \"menuItemId\": 1,\n      \"quantity\": 1,\n      \"note\": \"\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cashier/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashier",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create VNPAY QR For Existing Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "if (data.orderId) pm.collectionVariables.set('orderId', data.orderId);",
+                  "if (data.paymentUrl) pm.collectionVariables.set('paymentUrl', data.paymentUrl);",
+                  "if (data.transactionRef) pm.collectionVariables.set('transactionRef', data.transactionRef);",
+                  "pm.test('VNPAY QR created', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(data.status).to.eql('PENDING');",
+                  "  pm.expect(data.paymentUrl).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashier/orders/{{orderId}}/payments/vnpay-qr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashier",
+                "orders",
+                "{{orderId}}",
+                "payments",
+                "vnpay-qr"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Print QR Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashier/orders/{{orderId}}/print",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashier",
+                "orders",
+                "{{orderId}}",
+                "print"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Poll Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashier/orders/{{orderId}}/payment-status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashier",
+                "orders",
+                "{{orderId}}",
+                "payment-status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Open Payment URL In Browser",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{paymentUrl}}",
+              "host": [
+                "{{paymentUrl}}"
+              ]
+            },
+            "description": "Run Create Order - VNPAY QR first, then copy/open paymentUrl in a browser or send this request."
+          },
+          "response": []
+        },
+        {
+          "name": "VNPAY Return Callback Sample",
+          "auth": {
+            "type": "noauth"
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/vnpay/return?vnp_TxnRef={{transactionRef}}&vnp_Amount=1000000&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_TransactionNo=14000000&vnp_BankCode=NCB&vnp_SecureHash=REPLACE_WITH_VALID_HASH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "vnpay",
+                "return"
+              ],
+              "query": [
+                {
+                  "key": "vnp_TxnRef",
+                  "value": "{{transactionRef}}"
+                },
+                {
+                  "key": "vnp_Amount",
+                  "value": "1000000"
+                },
+                {
+                  "key": "vnp_ResponseCode",
+                  "value": "00"
+                },
+                {
+                  "key": "vnp_TransactionStatus",
+                  "value": "00"
+                },
+                {
+                  "key": "vnp_TransactionNo",
+                  "value": "14000000"
+                },
+                {
+                  "key": "vnp_BankCode",
+                  "value": "NCB"
+                },
+                {
+                  "key": "vnp_SecureHash",
+                  "value": "REPLACE_WITH_VALID_HASH"
+                }
+              ]
+            },
+            "description": "This sample fails until vnp_SecureHash is generated by VNPAY or by a local signing helper with the same VNPAY_HASH_SECRET."
+          },
+          "response": []
+        },
+        {
+          "name": "VNPAY IPN Callback Sample",
+          "auth": {
+            "type": "noauth"
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/vnpay/ipn?vnp_TxnRef={{transactionRef}}&vnp_Amount=1000000&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_TransactionNo=14000000&vnp_BankCode=NCB&vnp_SecureHash=REPLACE_WITH_VALID_HASH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "vnpay",
+                "ipn"
+              ],
+              "query": [
+                {
+                  "key": "vnp_TxnRef",
+                  "value": "{{transactionRef}}"
+                },
+                {
+                  "key": "vnp_Amount",
+                  "value": "1000000"
+                },
+                {
+                  "key": "vnp_ResponseCode",
+                  "value": "00"
+                },
+                {
+                  "key": "vnp_TransactionStatus",
+                  "value": "00"
+                },
+                {
+                  "key": "vnp_TransactionNo",
+                  "value": "14000000"
+                },
+                {
+                  "key": "vnp_BankCode",
+                  "value": "NCB"
+                },
+                {
+                  "key": "vnp_SecureHash",
+                  "value": "REPLACE_WITH_VALID_HASH"
+                }
+              ]
+            },
+            "description": "Real IPN should come from VNPAY after payment. This sample needs a valid checksum."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "List History Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/history/orders?page=0&size=10&search=&date=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "date",
+                  "value": "",
+                  "description": "YYYY-MM-DD"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List History Orders By Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/history/orders?month=5&year=2026&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get History Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/history/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "orders",
+                "{{orderId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update History Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Updated Customer\",\n  \"orderType\": \"TAKE_AWAY\",\n  \"note\": \"Updated from Postman\",\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"received\": 0,\n  \"items\": [\n    {\n      \"menuItemId\": 1,\n      \"quantity\": 2,\n      \"note\": \"Updated item\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/history/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "orders",
+                "{{orderId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete History Order",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/history/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "orders",
+                "{{orderId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "item": [
+        {
+          "name": "Get Report Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/report/orders?page=0&size=10&search=&startDate=&endDate=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "description": "YYYY-MM-DD"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Report Orders By Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/report/orders?month=5&year=2026&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Export Report Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/report/export/excel?month=5&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                "export",
+                "excel"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
+              ]
+            },
+            "description": "Use Send and Download in Postman to save the .xlsx file."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Report PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/report/export/pdf?month=5&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                "export",
+                "pdf"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
+              ]
+            },
+            "description": "Use Send and Download in Postman to save the .pdf file."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
